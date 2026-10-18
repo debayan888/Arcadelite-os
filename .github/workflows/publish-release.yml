@@ -1,0 +1,117 @@
+name: Publish ISO release
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Build installer ISO workflow run ID
+        required: true
+        default: "39102558087"
+        type: string
+      artifact_name:
+        description: Installer artifact name
+        required: true
+        default: arcadelite-open-installer
+        type: string
+      release_tag:
+        description: Release tag
+        required: true
+        default: v0.1.0
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download completed ISO artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p downloaded
+          gh run download "${RUN_ID}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --name "${ARTIFACT_NAME}" \
+            --dir downloaded
+
+      - name: Validate and split ISO into release-sized assets
+        id: prepare
+        run: |
+          set -euo pipefail
+          mapfile -t isos < <(find downloaded -type f -iname '*.iso' -print)
+          if [[ "${#isos[@]}" -ne 1 ]]; then
+            printf 'Expected exactly one ISO, found %s\n' "${#isos[@]}" >&2
+            exit 1
+          fi
+
+          iso="${isos[0]}"
+          iso_name="$(basename "${iso}")"
+          mkdir -p release-assets
+
+          # GitHub release assets are limited to 2 GiB each. Raw numbered
+          # chunks are deterministic and can be concatenated on any OS.
+          split -b 1900M -d -a 3 --additional-suffix=.part \
+            "${iso}" "release-assets/${iso_name}."
+
+          sha256sum "${iso}" | sed "s#  .*#  ${iso_name}#" \
+            > release-assets/SHA256SUMS.txt
+          sha256sum release-assets/*.part \
+            | sed 's#  release-assets/#  #' \
+            >> release-assets/SHA256SUMS.txt
+
+          printf 'iso_name=%s\n' "${iso_name}" >> "${GITHUB_OUTPUT}"
+          printf 'part_count=%s\n' "$(find release-assets -name '*.part' | wc -l)" \
+            >> "${GITHUB_OUTPUT}"
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          ISO_NAME: ${{ steps.prepare.outputs.iso_name }}
+          PART_COUNT: ${{ steps.prepare.outputs.part_count }}
+        run: |
+          set -euo pipefail
+          notes="$(mktemp)"
+          cat > "${notes}" <<EOF
+          ArcadeLite OS installer image for the open NVIDIA kernel-module variant.
+
+          This is a pre-release: the image and ISO workflows passed, but installation and hardware behavior have not yet been validated on the target laptop.
+
+          The ISO is provided as ${PART_COUNT} numbered parts because GitHub limits each release asset to 2 GiB. Download every \`${ISO_NAME}.*.part\` file and \`SHA256SUMS.txt\` into one directory.
+
+          Linux/macOS reconstruction:
+
+          \`\`\`bash
+          cat '${ISO_NAME}'.*.part > '${ISO_NAME}'
+          sha256sum -c SHA256SUMS.txt
+          \`\`\`
+
+          Windows PowerShell reconstruction:
+
+          \`\`\`powershell
+          \$parts = Get-ChildItem '${ISO_NAME}.*.part' | Sort-Object Name
+          \$output = [IO.File]::Create('${ISO_NAME}')
+          try {
+            foreach (\$part in \$parts) {
+              \$input = [IO.File]::OpenRead(\$part.FullName)
+              try { \$input.CopyTo(\$output) } finally { \$input.Dispose() }
+            }
+          } finally { \$output.Dispose() }
+          Get-FileHash '${ISO_NAME}' -Algorithm SHA256
+          \`\`\`
+
+          Compare the reconstructed ISO hash with its first entry in \`SHA256SUMS.txt\` before writing it to installation media.
+          EOF
+
+          gh release create "${RELEASE_TAG}" release-assets/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "ArcadeLite OS ${RELEASE_TAG}" \
+            --notes-file "${notes}" \
+            --prerelease
