@@ -47,6 +47,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log rootful Podman in to GHCR
+        if: github.event_name != 'pull_request'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "${GHCR_TOKEN}" | sudo podman login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
       - name: Push immutable and rolling tags
         if: github.event_name != 'pull_request'
         id: push
@@ -69,3 +74,4 @@ jobs:
           REMOTE: ${{ steps.push.outputs.remote }}
           DIGEST: ${{ steps.push.outputs.digest }}
         run: cosign sign --yes "${REMOTE}@${DIGEST}"
+
