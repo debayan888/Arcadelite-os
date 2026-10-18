@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArcadeLite OS Quick Start</title>
+  <style>
+    :root { color-scheme: dark; --bg:#091321; --card:#111e32; --text:#edf6ff; --muted:#a8bad0; --accent:#68ddff; --purple:#a873ff; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:radial-gradient(circle at 70% 0,#292057 0,transparent 42%),var(--bg); color:var(--text); font:17px/1.55 system-ui,sans-serif; }
+    main { width:min(900px,calc(100% - 32px)); margin:48px auto; }
+    h1 { font-size:clamp(2.2rem,7vw,4.6rem); margin:0; letter-spacing:.04em; }
+    h1 span { color:var(--accent); }
+    .lead { color:var(--muted); font-size:1.2rem; max-width:720px; }
+    section { background:color-mix(in srgb,var(--card) 92%,transparent); border:1px solid #31415a; border-radius:18px; padding:24px; margin:18px 0; box-shadow:0 16px 50px #0005; }
+    h2 { margin-top:0; color:var(--accent); }
+    code { color:#eadcff; background:#080d17; padding:.15em .4em; border-radius:6px; }
+    kbd { border:1px solid #6d7d92; border-bottom-width:3px; border-radius:5px; padding:.05em .35em; }
+    a { color:var(--accent); }
+    .tag { display:inline-block; padding:5px 10px; margin:0 5px 8px 0; border-radius:999px; background:#223153; color:#d9e8ff; font-size:.9rem; }
+  </style>
+</head>
+<body><main>
+  <div><span class="tag">Atomic updates</span><span class="tag">KDE Wayland</span><span class="tag">NVIDIA + Ryzen</span></div>
+  <h1>Welcome to <span>ArcadeLite</span></h1>
+  <p class="lead">A quiet daily desktop that wakes the NVIDIA GPU when a game needs it.</p>
+  <section><h2>1. Install your game libraries</h2><p>Open <strong>ArcadeLite Setup</strong> from the application menu and choose <em>Install Steam, Heroic, and Lutris</em>. They are installed per user as Flatpaks and do not modify the atomic host.</p></section>
+  <section><h2>2. Launch on the right GPU</h2><p>Store clients normally choose the discrete GPU for games. For a standalone executable, use <code>arcadelite-game --nvidia -- /path/to/game</code>. Add <code>--hud</code> to show MangoHud. Choose <code>--integrated</code> for lightweight games and better battery life.</p></section>
+  <section><h2>3. Updates that can go backward</h2><p>ArcadeLite installs a complete new system deployment and keeps the previous one. Inspect it with <code>bootc status</code>. If an update fails, select the previous deployment in the boot menu or run <code>sudo bootc rollback</code> from a working session.</p></section>
+  <section><h2>Useful controls</h2><p>Press <kbd>Meta</kbd> to open the application launcher. Search for <strong>System Monitor</strong>, <strong>GOverlay</strong>, <strong>ArcadeLite Setup</strong>, or <strong>ArcadeLite System Report</strong>. File indexing is off by default; it can be enabled in System Settings → Search.</p></section>
+  <section><h2>Before a long gaming session</h2><p>Connect AC power, update the system, and keep laptop vents clear. ArcadeLite intentionally avoids overclocking and permanent performance mode. GameMode applies temporary optimizations only while a game is running.</p></section>
+</main></body></html>
+
