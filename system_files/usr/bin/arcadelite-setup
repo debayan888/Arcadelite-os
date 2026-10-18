@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/arcadelite"
+mkdir -p "$state_dir"
+
+notify() {
+  if command -v kdialog >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+    kdialog --title "ArcadeLite OS" --msgbox "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+install_gaming_apps() {
+  if ! command -v flatpak >/dev/null 2>&1; then
+    notify "Flatpak is unavailable. The base image may be incomplete."
+    return 1
+  fi
+
+  flatpak remote-add --user --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+
+  # These are user-scoped so they do not enlarge or mutate the atomic host.
+  flatpak install --user --noninteractive flathub \
+    com.valvesoftware.Steam \
+    com.heroicgameslauncher.hgl \
+    net.lutris.Lutris
+
+  touch "$state_dir/gaming-apps-installed"
+  notify "Steam, Heroic, and Lutris are installed for this user."
+}
+
+open_guide() {
+  xdg-open file:///usr/share/doc/arcadelite/quick-start.html >/dev/null 2>&1 &
+}
+
+case "${1:-menu}" in
+  install-gaming) install_gaming_apps ;;
+  guide) open_guide ;;
+  complete) touch "$state_dir/welcome-complete" ;;
+  menu)
+    if command -v kdialog >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+      choice="$(kdialog --title 'ArcadeLite Setup' --menu 'Choose an action' \
+        install 'Install Steam, Heroic, and Lutris' \
+        guide 'Open the quick-start guide' \
+        finish 'Do not show welcome again' || true)"
+      case "$choice" in
+        install) install_gaming_apps ;;
+        guide) open_guide ;;
+        finish) touch "$state_dir/welcome-complete" ;;
+      esac
+    else
+      printf '%s\n' \
+        'ArcadeLite Setup' \
+        '  arcadelite-setup install-gaming' \
+        '  arcadelite-setup guide' \
+        '  arcadelite-setup complete'
+    fi
+    ;;
+  *) printf 'Unknown action: %s\n' "$1" >&2; exit 64 ;;
+esac
+
