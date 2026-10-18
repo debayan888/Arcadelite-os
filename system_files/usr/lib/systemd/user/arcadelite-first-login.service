@@ -1,0 +1,13 @@
+[Unit]
+Description=ArcadeLite first-login setup
+After=graphical-session.target
+PartOf=graphical-session.target
+ConditionPathExists=!%h/.local/state/arcadelite/welcome-complete
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/arcadelite-first-login
+
+[Install]
+WantedBy=default.target
+
