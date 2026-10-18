@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ArcadeLite Setup
+Comment=Install game stores and open the quick-start guide
+Exec=arcadelite-setup menu
+Icon=applications-games
+Categories=Game;Settings;
+Keywords=Steam;Heroic;Lutris;Gaming;Setup;
+
