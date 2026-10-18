@@ -1,0 +1,9 @@
+{
+  "KPlugin": {
+    "Authors": [{"Name": "ArcadeLite OS contributors"}],
+    "Id": "ArcadeLite",
+    "License": "CC0-1.0",
+    "Name": "ArcadeLite Horizon"
+  }
+}
+
