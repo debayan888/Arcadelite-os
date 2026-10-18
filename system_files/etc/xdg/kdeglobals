@@ -1,0 +1,11 @@
+[General]
+ColorScheme=BreezeDark
+Name=ArcadeLite
+
+[KDE]
+AnimationDurationFactor=0.75
+SingleClick=false
+
+[KFileDialog Settings]
+Show Inline Previews=true
+
