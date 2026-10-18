@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+  cat <<'EOF'
+Usage: arcadelite-game [--hud] [--integrated|--nvidia] -- COMMAND [ARG...]
+
+Launches a game through GameMode. On hybrid laptops, --nvidia selects the
+NVIDIA PRIME render-offload GPU while --integrated keeps the low-power AMD GPU.
+The default is --nvidia when the NVIDIA driver is active, otherwise integrated.
+EOF
+}
+
+hud=0
+gpu=auto
+while (($#)); do
+  case "$1" in
+    --hud) hud=1; shift ;;
+    --integrated) gpu=integrated; shift ;;
+    --nvidia) gpu=nvidia; shift ;;
+    --help|-h) show_help; exit 0 ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
+
+if (($# == 0)); then
+  show_help >&2
+  exit 64
+fi
+
+if [[ "$gpu" == auto ]]; then
+  if [[ -e /proc/driver/nvidia/version ]]; then
+    gpu=nvidia
+  else
+    gpu=integrated
+  fi
+fi
+
+cmd=(gamemoderun)
+if ((hud)); then
+  cmd+=(mangohud)
+fi
+cmd+=("$@")
+
+if [[ "$gpu" == nvidia ]]; then
+  export __NV_PRIME_RENDER_OFFLOAD=1
+  export __GLX_VENDOR_LIBRARY_NAME=nvidia
+  export __VK_LAYER_NV_optimus=NVIDIA_only
+fi
+
+exec "${cmd[@]}"
+
