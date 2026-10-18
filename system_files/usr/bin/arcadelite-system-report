@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' '=== ArcadeLite system report ==='
+printf 'OS: '; . /usr/lib/os-release; printf '%s\n' "${PRETTY_NAME}"
+printf 'Kernel: '; uname -r
+printf 'Session: %s\n' "${XDG_SESSION_TYPE:-unknown}"
+printf 'Memory: '; free -h | awk '/^Mem:/ {print $3 " used / " $2 " total; " $7 " available"}'
+printf 'Swap: '; free -h | awk '/^Swap:/ {print $3 " used / " $2 " total"}'
+printf '%s\n' '' 'GPUs:'
+if command -v lspci >/dev/null 2>&1; then
+  lspci -nnk | awk '/VGA compatible controller|3D controller/{show=1} show{print} /Kernel modules:/{show=0}'
+else
+  printf '%s\n' 'pciutils is unavailable'
+fi
+if command -v nvidia-smi >/dev/null 2>&1; then
+  printf '%s\n' '' 'NVIDIA:'
+  nvidia-smi --query-gpu=name,driver_version,pstate,memory.total --format=csv,noheader
+fi
+printf '%s\n' '' 'Deployment:'
+bootc status || rpm-ostree status
+
+if [[ "${1:-}" == "--wait" ]]; then
+  printf '\nPress Enter to close...'
+  read -r
+fi
