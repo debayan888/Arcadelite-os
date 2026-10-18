@@ -50,6 +50,7 @@ jobs:
           config-file: ./disk_config/iso.generated.toml
           image: ${{ env.IMAGE }}
           types: anaconda-iso
+          rootfs: btrfs
           chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
           additional-args: --use-librepo=True
       - name: Upload ISO
