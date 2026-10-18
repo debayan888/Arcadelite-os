@@ -1,0 +1,9 @@
+.tools/
+.upstream/
+node-portable.zip
+upstream-template.zip
+output/
+*.iso
+*.qcow2
+cosign.key
+
