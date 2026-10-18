@@ -1,0 +1,71 @@
+name: Build bootc images
+
+on:
+  schedule:
+    - cron: "17 6 * * 2"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "README.md"]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: open
+            base: ghcr.io/blue-build/base-images/fedora-kinoite-nvidia-open:latest
+          - variant: legacy
+            base: ghcr.io/blue-build/base-images/fedora-kinoite-nvidia:latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Free runner disk space
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+      - name: Build image
+        env:
+          BASE_IMAGE: ${{ matrix.base }}
+        run: |
+          set -euo pipefail
+          image="arcadelite-os-${{ matrix.variant }}"
+          sudo podman build --build-arg "BASE_IMAGE=${BASE_IMAGE}" --tag "${image}:latest" .
+          sudo podman run --rm "${image}:latest" bootc container lint
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push immutable and rolling tags
+        if: github.event_name != 'pull_request'
+        id: push
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          image="arcadelite-os-${{ matrix.variant }}"
+          remote="ghcr.io/${owner}/${image}"
+          stamp="$(date -u +%Y%m%d)"
+          sudo podman push --digestfile digest "${image}:latest" "${remote}:${stamp}"
+          sudo podman push "${image}:latest" "${remote}:latest"
+          printf 'remote=%s\n' "${remote}" >> "${GITHUB_OUTPUT}"
+          printf 'digest=%s\n' "$(cat digest)" >> "${GITHUB_OUTPUT}"
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - name: Keyless-sign immutable image
+        if: github.event_name != 'pull_request'
+        env:
+          REMOTE: ${{ steps.push.outputs.remote }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${REMOTE}@${DIGEST}"
