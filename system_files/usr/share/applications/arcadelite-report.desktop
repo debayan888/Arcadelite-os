@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ArcadeLite System Report
+Comment=Show graphics, memory, and deployment information
+Exec=konsole -e arcadelite-system-report --wait
+Icon=utilities-system-monitor
+Categories=System;
+Keywords=NVIDIA;GPU;RAM;diagnostics;rollback;
