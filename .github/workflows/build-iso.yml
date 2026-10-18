@@ -1,6 +1,9 @@
 name: Build installer ISO
 
 on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/build-iso.yml"]
   workflow_dispatch:
     inputs:
       variant:
@@ -27,7 +30,8 @@ jobs:
         run: |
           set -euo pipefail
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          image="ghcr.io/${owner}/arcadelite-os-${{ inputs.variant }}:latest"
+          variant="${{ inputs.variant || 'open' }}"
+          image="ghcr.io/${owner}/arcadelite-os-${variant}:latest"
           sed "s#localhost/arcadelite-os:latest#${image}#" disk_config/iso.toml > disk_config/iso.generated.toml
           echo "IMAGE=${image}" >> "${GITHUB_ENV}"
           echo "USER_UID=$(id -u)" >> "${GITHUB_ENV}"
@@ -51,8 +55,9 @@ jobs:
       - name: Upload ISO
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: arcadelite-${{ inputs.variant }}-installer
+          name: arcadelite-${{ inputs.variant || 'open' }}-installer
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
