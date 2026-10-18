@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/arcadelite"
+mkdir -p "$state_dir"
+if [[ -e "$state_dir/welcome-complete" ]]; then
+  exit 0
+fi
+
+# Apply only defaults that have not already been chosen by the user.
+if command -v kwriteconfig6 >/dev/null 2>&1; then
+  kwriteconfig6 --file kdeglobals --group KDE --key AnimationDurationFactor 0.75
+  kwriteconfig6 --file baloofilerc --group 'Basic Settings' --key Indexing-Enabled false
+fi
+
+wallpaper="/usr/share/wallpapers/ArcadeLite/contents/images/2560x1440.svg"
+if command -v plasma-apply-wallpaperimage >/dev/null 2>&1 && [[ -f "$wallpaper" ]]; then
+  plasma-apply-wallpaperimage "$wallpaper" >/dev/null 2>&1 || true
+fi
+
+arcadelite-setup menu
+
